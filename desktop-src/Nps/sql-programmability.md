@@ -42,65 +42,30 @@ CREATE DATABASE [NPSODBC]  ON (NAME = N'NPSODBC_Data',
                                SIZE = 1, FILEGROWTH = 10%)
  COLLATE SQL_Latin1_General_CP1_CI_AS
 GO
-
-exec sp_dboption N'NPSODBC', N'autoclose', N'false'
-GO
-
-exec sp_dboption N'NPSODBC', N'bulkcopy', N'false'
-GO
-
-exec sp_dboption N'NPSODBC', N'trunc. log', N'false'
-GO
-
-exec sp_dboption N'NPSODBC', N'torn page detection', N'true'
-GO
-
-exec sp_dboption N'NPSODBC', N'read only', N'false'
-GO
-
-exec sp_dboption N'NPSODBC', N'dbo use', N'false'
-GO
-
-exec sp_dboption N'NPSODBC', N'single', N'false'
-GO
-
-exec sp_dboption N'NPSODBC', N'autoshrink', N'false'
-GO
-
-exec sp_dboption N'NPSODBC', N'ANSI null default', N'false'
-GO
-
-exec sp_dboption N'NPSODBC', N'recursive triggers', N'false'
-GO
-
-exec sp_dboption N'NPSODBC', N'ANSI nulls', N'false'
-GO
-
-exec sp_dboption N'NPSODBC', N'concat null yields null', N'false'
-GO
-
-exec sp_dboption N'NPSODBC', N'cursor close on commit', N'false'
-GO
-
-exec sp_dboption N'NPSODBC', N'default to local cursor', N'false'
-GO
-
-exec sp_dboption N'NPSODBC', N'quoted identifier', N'false'
-GO
-
-exec sp_dboption N'NPSODBC', N'ANSI warnings', N'false'
-GO
-
-exec sp_dboption N'NPSODBC', N'auto create statistics', N'true'
-GO
-
-exec sp_dboption N'NPSODBC', N'auto update statistics', N'true'
+/* Auto Options */
+ALTER DATABASE [NPSODBC] SET AUTO_CLOSE OFF
+ALTER DATABASE [NPSODBC] SET AUTO_UPDATE_STATISTICS ON
+ALTER DATABASE [NPSODBC] SET AUTO_CREATE_STATISTICS ON
+/* Cursor Options */
+ALTER DATABASE [NPSODBC] SET CURSOR_CLOSE_ON_COMMIT OFF
+ALTER DATABASE [NPSODBC] SET CURSOR_DEFAULT GLOBAL
+/* Recovery Options */
+ALTER DATABASE [NPSODBC] SET RECOVERY SIMPLE
+ALTER DATABASE [NPSODBC] SET TORN_PAGE_DETECTION OFF
+/* SQL Options */
+ALTER DATABASE [NPSODBC] SET AUTO_SHRINK OFF
+ALTER DATABASE [NPSODBC] SET ANSI_NULL_DEFAULT OFF
+ALTER DATABASE [NPSODBC] SET RECURSIVE_TRIGGERS OFF
+ALTER DATABASE [NPSODBC] SET ANSI_NULLS OFF
+ALTER DATABASE [NPSODBC] SET CONCAT_NULL_YIELDS_NULL OFF
+ALTER DATABASE [NPSODBC] SET QUOTED_IDENTIFIER OFF
+ALTER DATABASE [NPSODBC] SET ANSI_WARNINGS OFF
 GO
 
 if( ( (@@microsoftversion / power(2, 24) = 8) and (@@microsoftversion & 0xffff >= 724) ) or 
     ( (@@microsoftversion / power(2, 24) = 7) and (@@microsoftversion & 0xffff >= 1082) ) )
-    exec sp_dboption N'NPSODBC', N'db chaining', N'false'
-GO
+   ALTER DATABASE [NPSODBC] SET DB_CHAINING OFF
+   GO
 
 use [NPSODBC]
 GO
@@ -129,7 +94,7 @@ setuser
 GO
 
 CREATE TABLE [dbo].[accounting_data] (
-    [id] [int] IDENTITY (1, 1) NOT NULL ,
+    [id] [int] IDENTITY (1, 1) PRIMARY KEY, 
     [timestamp] [datetime] NOT NULL ,
     [Computer_Name] [nvarchar] (255) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL ,
     [Packet_Type] [int] NOT NULL ,
@@ -198,7 +163,13 @@ CREATE TABLE [dbo].[accounting_data] (
     The following column stores the NAP-specific information, available from NPS starting with Windows Server 2008. 
     The allowed values are: 0 (Full Access), 1 (Quarantined), and 2 (Probation).
 */
-    [MS_Quarantine_State] [int] NULL 
+    [MS_Quarantine_State] [int] NULL, 
+	[Event_Source] [nvarchar](255) NULL,
+	[Framed_MTU] [int] NULL,
+	[MS_RAS_Correlation_ID] [nvarchar](255) NULL,
+	[MS_Network_Access_Server_Type] [nvarchar](255) NULL,
+	[SAM_Account_Name] [nvarchar](255) NULL,
+	[Fully_Qualifed_User_Name] [nvarchar](255) NULL
 ) ON [PRIMARY]
 GO
 
@@ -228,8 +199,10 @@ DECLARE @record_timestamp datetime
 
 SET @record_timestamp = GETUTCDATE()
 
-INSERT accounting_data
-SELECT
+SET IDENTITY_INSERT [dbo].[accounting_data] ON 
+
+INSERT accounting_data ([timestamp],[Computer_Name],[Packet_Type],[User_Name],[F_Q_User_Name],[Called_Station_Id],[Calling_Station_Id],[Callback_Number],[Framed_IP_Address],[NAS_Identifier],[NAS_IP_Address],[NAS_Port],[Client_Vendor],[Client_IP_Address],[Client_Friendly_Name],[Event_Timestamp],[Port_Limit],[NAS_Port_Type],[Connect_Info],[Framed_Protocol],[Service_Type],[Authentication_Type],[NP_Policy_Name],[Reason_Code],[Class],[Session_Timeout],[Idle_Timeout],[Termination_Action],[EAP_Friendly_Name],[Acct_Status_Type],[Acct_Delay_Time],[Acct_Input_Octets],[Acct_Output_Octets],[Acct_Session_Id],[Acct_Authentic],[Acct_Session_Time],[Acct_Input_Packets],[Acct_Output_Packets],[Acct_Terminate_Cause],[Acct_Multi_Session_Id],[Acct_Link_Count],[Acct_Interim_Interval],[Tunnel_Type],[Tunnel_Medium_Type],[Tunnel_Client_Endpoint],[Tunnel_Server_Endpoint],[Acct_Tunnel_Connection],[Tunnel_Pvt_Group_Id],[Tunnel_Assignment_Id],[Tunnel_Preference],[MS_Acct_Auth_Type],[MS_Acct_EAP_Type],[MS_RAS_Version],[MS_RAS_Vendor],[MS_CHAP_Error],[MS_CHAP_Domain],[MS_MPPE_Encryption_Types],[MS_MPPE_Encryption_Policy],[Proxy_Policy_Name],[Provider_Type],[Provider_Name],[Remote_Server_Address],[MS_RAS_Client_Name],[MS_RAS_Client_Version],[MS_Quarantine_State],[Event_Source],[Framed_MTU],[MS_RAS_Correlation_ID],[MS_Network_Access_Server_Type],[SAM_Account_Name],[Fully_Qualifed_User_Name])
+SELECT 
     @record_timestamp,
     Computer_Name,
     Packet_Type,
@@ -389,6 +362,7 @@ SET QUOTED_IDENTIFIER OFF
 GO
 SET ANSI_NULLS ON 
 GO
+
 ```
 
 ## Related topics
@@ -397,7 +371,3 @@ GO
 
 [TechNet: Key concepts for IAS SQL Server logging](/previous-versions/windows/it-pro/windows-server-2003/cc778830(v=ws.10))
 </dt> </dl>
-
- 
-
- 
